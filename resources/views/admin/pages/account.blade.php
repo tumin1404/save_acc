@@ -93,61 +93,63 @@
 
 <!-- Modal thêm mới -->
 <div class="modal fade bd-example-modal-lg" id="defaultModal" tabindex="-1" role="dialog" aria-labelledby="defaultModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+  <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="defaultModalLabel">Thêm mới tài khoản</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <form id="AddAccountForm" action="{{ route('admin.account.store') }}" method="POST" onsubmit="submitForm(event)">
-            @csrf  {{-- Thêm CSRF token --}}
-          <div class="modal-body">
-            <div class="row">
-                <div class="col-md-6">
-                  <div class="form-group">
-                    <label>Tên đăng nhập</label>
-                    <input type="text" name="username" class="form-control">
+          <div class="modal-header">
+              <h5 class="modal-title" id="defaultModalLabel">Thêm mới tài khoản</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+          <form id="AddAccountForm" action="{{ route('admin.account.store') }}" method="POST">
+              @csrf
+              <div class="modal-body">
+                  <!-- Thông báo sẽ được thêm vào đây -->
+                  <div id="modal-alert"></div>
+                  <div class="row">
+                      <div class="col-md-6">
+                          <div class="form-group">
+                              <label>Tên đăng nhập</label>
+                              <input type="text" name="username" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label>Tên hiển thị</label>
+                              <input type="text" name="account_name" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label>Phone/Email Verify</label>
+                              <input type="text" name="phone_email_verify" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label>2FA</label>
+                              <input type="text" name="2FA" class="form-control">
+                          </div>
+                      </div>
+                      <div class="col-md-6">
+                          <div class="form-group">
+                              <label>Mật khẩu</label>
+                              <input type="text" name="password" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label>Website/App</label>
+                              <input type="text" name="website_app" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label>App/phone Authen</label>
+                              <input type="text" name="app_phone_authen" class="form-control">
+                          </div>
+                      </div>
                   </div>
-                  <div class="form-group">
-                    <label>Tên hiển thị</label>
-                    <input type="text" name="account_name" class="form-control">
-                  </div>
-                  <div class="form-group">
-                    <label>Phone/Email Verify</label>
-                    <input type="text" name="phone_email_verify" class="form-control">
-                  </div>
-                  <div class="form-group">
-                    <label>2FA</label>
-                    <input type="text" name="2FA" class="form-control">
-                  </div>
-                </div> <!-- /.col -->
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Mật khẩu</label>
-                        <input type="text" name="password" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Website/App</label>
-                        <input type="text" name="website_app" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>App/phone Authen</label>
-                        <input type="text" name="app_phone_authen" class="form-control">
-                    </div>
-                </div>
               </div>
-          </div>
-          <div class="modal-footer">
-            <div class="mx-auto">
-              <button type="submit" class="btn btn-outline-primary">Lưu</button>
-              <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Thoát</button>
-            </div>
-          </div>
-        </form>
+              <div class="modal-footer">
+                  <div class="mx-auto">
+                      <button type="submit" class="btn btn-outline-primary">Lưu</button>
+                      <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Thoát</button>
+                  </div>
+              </div>
+          </form>
       </div>
-    </div>
+  </div>
 </div>
 
 <!-- Modal xem chi tiết -->
@@ -220,144 +222,137 @@
   </div>
 </div>
 
-
+{{-- script xem và xoá --}}
 <script>
-function submitForm(event) {
-    event.preventDefault(); // Ngăn chặn form submit mặc định
-
-    const form = document.getElementById('AddAccountForm');
-    const formData = new FormData(form);
-
-    fetch(form.action, {
-        method: form.method,
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest', // Để Laravel biết đây là AJAX request
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Lỗi khi gửi request!');
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            $('#defaultModal').modal('hide');
-            form.reset();
-            loadAccounts(); // Cập nhật lại bảng
-        } else {
-            alert(data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Đã có lỗi xảy ra!');
+function attachEventHandlers() {
+    // Bắt sự kiện khi nhấn vào nút "Xem"
+    document.querySelectorAll(".btn-view").forEach(button => {
+        button.addEventListener("click", function(event) {
+            event.preventDefault(); // Ngăn chặn hành vi mặc định của thẻ <a>
+            
+            let accountId = this.getAttribute("data-id"); // Lấy ID từ data-id
+            console.log("ID tài khoản:", accountId); // Log để kiểm tra
+            
+            // Nếu muốn gửi request để lấy dữ liệu tài khoản:
+            fetch(`/admin/account/${accountId}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Dữ liệu tài khoản:", data); // Log toàn bộ dữ liệu
+                    // Hiển thị dữ liệu lên modal
+                    document.querySelector("input[name='id']").value = data.id;
+                    document.querySelector("input[id='username']").value = data.username;
+                    document.querySelector("input[id='account_name']").value = data.account_name;
+                    document.querySelector("input[id='password']").value = data.password;
+                    document.querySelector("input[id='website_app']").value = data.website_app;
+                    document.querySelector("input[id='phone_email_verify']").value = data.phone_email_verify;
+                    document.querySelector("input[id='app_phone_authen']").value = data.app_phone_authen;
+                    document.querySelector("input[id='2FA']").value = data['2FA'];
+                    document.querySelector("input[id='created_at']").value = data.created_at;
+                    document.querySelector("input[id='updated_at']").value = data.updated_at;
+                })
+                .catch(error => console.error("Lỗi khi lấy dữ liệu tài khoản:", error));
+        });
     });
-}
 
-</script>
-<script>
-  function loadAccounts() {
-    fetch('/admin/account/data') // Route để lấy dữ liệu account
-    .then(response => response.json())
-    .then(data => {
-        const tableBody = document.querySelector('#accountTable tbody'); // Chọn tbody của bảng
-        tableBody.innerHTML = ''; // Xóa dữ liệu cũ
+    // Bắt sự kiện khi nhấn vào nút "Xóa"
+    document.querySelectorAll(".btn-delete-account").forEach(button => {
+        button.addEventListener("click", function() {
+            let accountId = this.getAttribute("data-id"); // Lấy ID tài khoản
+            console.log("ID tài khoản cần xóa:", accountId); // Log để kiểm tra
 
-        data.forEach(account => { // Duyệt qua dữ liệu mới và tạo các hàng của bảng
-            const row = tableBody.insertRow();
-            row.insertCell().textContent = account.id;
-            row.insertCell().textContent = account.username;
-            row.insertCell().textContent = account.password;
-            row.insertCell().textContent = account.account_name;
-            row.insertCell().textContent = account.website_app;
-            row.insertCell().textContent = account.phone_email_verify;
-            row.insertCell().textContent = account.app_phone_authen;
-            row.insertCell().textContent = account.2FA;
+            if (confirm("Bạn có chắc chắn muốn xóa tài khoản này?")) {
+                fetch(`/admin/account/${accountId}`, {
+                    method: "DELETE",
+                    headers: {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                        "Content-Type": "application/json"
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Phản hồi từ server:", data); // Log phản hồi từ server
 
-            // Thêm nút sửa và xóa (nếu cần)
-            const actionsCell = row.insertCell();
-            actionsCell.innerHTML = `
-                <a href="#" class="btn btn-sm btn-primary">Sửa</a>
-                <form action="" style="display:inline;">
-                    @csrf
-                    <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
-                </form>
-            `;
+                    if (data.success) {
+                        alert("Tài khoản đã được xóa thành công!");
+                        location.reload(); // Reload lại trang để cập nhật danh sách
+                    } else {
+                        alert("Lỗi khi xóa tài khoản!");
+                    }
+                })
+                .catch(error => console.error("Lỗi khi gửi yêu cầu xóa:", error));
+            }
         });
     });
 }
 
-// Gọi hàm loadAccount khi trang web được tải
-window.onload = loadAccounts;
+// Gọi hàm attachEventHandlers khi DOM đã sẵn sàng
+document.addEventListener("DOMContentLoaded", function() {
+    attachEventHandlers();
+});
 </script>
 
+{{-- script thêm mới --}}
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // Bắt sự kiện khi nhấn vào nút "Xem"
-        document.querySelectorAll(".btn-view").forEach(button => {
-            button.addEventListener("click", function(event) {
-                event.preventDefault(); // Ngăn chặn hành vi mặc định của thẻ <a>
-                
-                let accountId = this.getAttribute("data-id"); // Lấy ID từ data-id
-                console.log("ID tài khoản:", accountId); // Log để kiểm tra
-                
-                // Nếu muốn gửi request để lấy dữ liệu tài khoản:
-                fetch(`/admin/account/${accountId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log("Dữ liệu tài khoản:", data); // Log toàn bộ dữ liệu
-                        // Hiển thị dữ liệu lên modal
-                        document.querySelector("input[name='id']").value = data.id;
-                        document.querySelector("input[id='username']").value = data.username;
-                        document.querySelector("input[id='account_name']").value = data.account_name;
-                        document.querySelector("input[id='password']").value = data.password;
-                        document.querySelector("input[id='website_app']").value = data.website_app;
-                        document.querySelector("input[id='phone_email_verify']").value = data.phone_email_verify;
-                        document.querySelector("input[id='app_phone_authen']").value = data.app_phone_authen;
-                        document.querySelector("input[id='2FA']").value = data['2FA'];
-                        document.querySelector("input[id='created_at']").value = data.created_at;
-                        document.querySelector("input[id='updated_at']").value = data.updated_at;
-                    })
-                    .catch(error => console.error("Lỗi khi lấy dữ liệu tài khoản:", error));
-            });
-        });
+document.addEventListener("DOMContentLoaded", function() {
+    // Xử lý form thêm mới tài khoản
+    document.getElementById("AddAccountForm").addEventListener("submit", function(event) {
+        event.preventDefault(); // Ngăn chặn hành vi mặc định của form
+
+        let formData = new FormData(this);
+
+        fetch(this.action, {
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Hiển thị thông báo thành công
+                let successAlert = document.createElement("div");
+                successAlert.className = "alert alert-success";
+                successAlert.textContent = data.success;
+                document.querySelector(".modal-body").prepend(successAlert);
+
+                // Thêm tài khoản mới vào bảng
+                let newRow = document.createElement("tr");
+                newRow.innerHTML = `
+                    <td><a href="#" class="btn btn-sm btn-primary btn-view" data-toggle="modal" data-target=".modal-view-lg" data-id="${data.account.id}">Xem</a></td>
+                    <td>${document.querySelectorAll("tbody tr").length + 1}</td>
+                    <td>${data.account.username}</td>
+                    <td>${data.account.account_name}</td>
+                    <td>${data.account.website_app}</td>
+                    <td>${data.account.phone_email_verify}</td>
+                    <td>
+                        <a href="#" class="btn btn-sm btn-primary">Sửa</a>
+                        <form action="" style="display:inline;">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-danger btn-delete-account" data-id="${data.account.id}">Xóa</button>
+                        </form>
+                    </td>
+                `;
+                document.querySelector("tbody").appendChild(newRow);
+
+                // Gọi lại hàm attachEventHandlers để gán sự kiện cho các nút mới
+                attachEventHandlers();
+
+                // Đóng modal sau 2 giây
+                setTimeout(() => {
+                    $('#defaultModal').modal('hide');
+                }, 1000);
+            } else if (data.error) {
+                // Hiển thị thông báo lỗi
+                let errorAlert = document.createElement("div");
+                errorAlert.className = "alert alert-danger";
+                errorAlert.textContent = data.error;
+                document.querySelector(".modal-body").prepend(errorAlert);
+            }
+        })
+        .catch(error => console.error("Lỗi khi gửi yêu cầu:", error));
     });
-</script>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        document.querySelectorAll(".btn-delete-account").forEach(button => {
-            button.addEventListener("click", function() {
-                let accountId = this.getAttribute("data-id"); // Lấy ID tài khoản
-                console.log("ID tài khoản cần xóa:", accountId); // Log để kiểm tra
-
-                if (confirm("Bạn có chắc chắn muốn xóa tài khoản này?")) {
-                    fetch(`/admin/account/${accountId}`, {
-                        method: "DELETE",
-                        headers: {
-                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
-                            "Content-Type": "application/json"
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log("Phản hồi từ server:", data); // Log phản hồi từ server
-
-                        if (data.success) {
-                            alert("Tài khoản đã được xóa thành công!");
-                            location.reload(); // Reload lại trang để cập nhật danh sách
-                        } else {
-                            alert("Lỗi khi xóa tài khoản!");
-                        }
-                    })
-                    .catch(error => console.error("Lỗi khi gửi yêu cầu xóa:", error));
-                }
-            });
-        });
-    });
+});
 </script>
 
 @endsection

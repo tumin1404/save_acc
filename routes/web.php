@@ -24,6 +24,5 @@ Route::get('/admin/home', function(){
 Route::get('/admin/account', [AccountController::class, 'index']);
 Route::get('/admin/account/{id}', [AccountController::class, 'show'])->name('admin.account');
 Route::post('/admin/account', [AccountController::class, 'store'])->name('admin.account.store');
-Route::get('/account/data', [AccountController::class, 'getAccountsData']);
 Route::delete('/admin/account/{id}', [AccountController::class, 'destroy'])->name('admin.account.destroy');
 

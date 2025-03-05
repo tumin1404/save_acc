@@ -56,7 +56,7 @@ class AccountController extends Controller
             ->first();
 
             if ($existingAccount) {
-                return redirect()->back()->with('error', 'Lỗi: Tài khoản đã tồn tại (trùng username, password, account_name và website_app).');
+                return response()->json(['error' => 'Lỗi: Tài khoản đã tồn tại (trùng username, password, account_name và website_app).'], 409);
             }
     
             $account = new Account();
@@ -73,26 +73,22 @@ class AccountController extends Controller
     
             $account->save();
             // return redirect()->back()->with('success', 'Tài khoản đã được thêm thành công!');
-            return response()->json(['success' => true, 'message' => 'Tài khoản đã được thêm thành công!']);
+            return response()->json(['success' => 'Tài khoản đã được thêm thành công!', 'account' => $account], 201);
         } catch (QueryException $e) {
             // Bắt lỗi từ database (ví dụ: trùng username, lỗi kết nối, ...)
             $errorCode = $e->getCode();
             if ($errorCode == 23000) { // Lỗi trùng lặp dữ liệu (ví dụ: username)
                 // return redirect()->back()->with('error', 'Lỗi: Tên đăng nhập đã tồn tại.');
-                return response()->json(['success' => false, 'message' => 'Lỗi: Tên đăng nhập đã tồn tại.' . $e->getMessage()], 500);
+                return response()->json(['error' => 'Lỗi: Tên đăng nhập đã tồn tại.'], 409);
             } else {
-                return response()->json(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()], 500);
+                // return redirect()->back()->with('error', 'Lỗi: Có lỗi xảy ra 1.');
+                return response()->json(['error' => 'Lỗi: Có lỗi xảy ra 1.'], 500);
             }
     
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()], 500);
+            // return redirect()->back()->with('error', 'Lỗi: Có lỗi xảy ra 2.');
+            return response()->json(['error' => 'Lỗi: Có lỗi xảy ra 2.'], 500);
         }
-    }
-
-    public function getAccountsData()
-    {
-        $account = Account::all();
-        return response()->json($account);
     }
 
     /**
