@@ -11,7 +11,7 @@
     </div>
 @endif
 <h1 class="text-center my-4">QUẢN LÝ TÀI KHOẢN</h1>
-<button type="button" class="btn mb-2 btn-outline-primary" data-toggle="modal" data-target=".bd-example-modal-lg">
+<button type="button" class="btn mb-2 btn-outline-primary" data-toggle="modal" data-target=".bd-example-modal-lg" data-action="add">
     <span class="fe fe-plus fe-16 mr-2"></span>Thêm mới
 </button>
 <div class="row">
@@ -62,7 +62,7 @@
                         {{-- <td>{{ $account->created_at }}</td>
                         <td>{{ $account->updated_at }}</td> --}}
                         <td>
-                            <a href="#" class="btn btn-sm btn-primary">Sửa</a>
+                            <a href="#" class="btn btn-sm btn-primary btn-edit" data-toggle="modal" data-target=".bd-example-modal-lg" data-action="edit" data-id="{{ $account->id }}">Sửa</a>
                             <form action="" style="display:inline;">
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-danger btn-delete-account"
@@ -91,7 +91,7 @@
     </div>
 </div> <!-- end section -->
 
-<!-- Modal thêm mới -->
+<!-- Modal thêm mới và chỉnh sửa -->
 <div class="modal fade bd-example-modal-lg" id="defaultModal" tabindex="-1" role="dialog" aria-labelledby="defaultModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
@@ -101,7 +101,7 @@
                   <span aria-hidden="true">&times;</span>
               </button>
           </div>
-          <form id="AddAccountForm" action="{{ route('admin.account.store') }}" method="POST">
+          <form id="AddAccountForm" method="POST">
               @csrf
               <div class="modal-body">
                   <!-- Thông báo sẽ được thêm vào đây -->
@@ -153,11 +153,11 @@
 </div>
 
 <!-- Modal xem chi tiết -->
-<div class="modal fade modal-view-lg" id="defaultModal" tabindex="-1" role="dialog" aria-labelledby="defaultModalLabel" aria-hidden="true">
+<div class="modal fade modal-view-lg" id="ViewAccountModal" tabindex="-1" role="dialog" aria-labelledby="defaultModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="defaultModalLabel">Chi tiết tài khoản</h5>
+        <h5 class="modal-title" id="ViewAccountModalLabel">Chi tiết tài khoản</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -283,6 +283,47 @@ function attachEventHandlers() {
             }
         });
     });
+
+    // Bắt sự kiện khi nhấn vào nút "Thêm mới" hoặc "Sửa"
+    document.querySelectorAll("[data-toggle='modal']").forEach(button => {
+        button.addEventListener("click", function() {
+            let action = this.getAttribute("data-action");
+            let modalTitle = document.getElementById("defaultModalLabel");
+            let form = document.getElementById("AddAccountForm");
+
+            if (action === "add") {
+                modalTitle.textContent = "Thêm mới tài khoản";
+                form.action = "{{ route('admin.account.store') }}";
+                form.method = "POST";
+                form.reset();
+            } else if (action === "edit") {
+                modalTitle.textContent = "Chỉnh sửa tài khoản";
+                let accountId = this.getAttribute("data-id");
+
+                // Lấy dữ liệu tài khoản và điền vào form
+                fetch(`/admin/account/${accountId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        form.action = `/admin/account/${accountId}`;
+                        form.method = "POST";
+                        form.innerHTML += '@method("PUT")'; // Thêm phương thức PUT
+                        document.querySelector("input[name='username']").value = data.username;
+                        document.querySelector("input[name='account_name']").value = data.account_name;
+                        document.querySelector("input[name='phone_email_verify']").value = data.phone_email_verify;
+                        document.querySelector("input[name='2FA']").value = data['2FA'];
+                        document.querySelector("input[name='password']").value = data.password;
+                        document.querySelector("input[name='website_app']").value = data.website_app;
+                        document.querySelector("input[name='app_phone_authen']").value = data.app_phone_authen;
+                    })
+                    .catch(error => console.error("Lỗi khi lấy dữ liệu tài khoản:", error));
+            }
+        });
+    });
+
+    // Xóa thông báo khi modal được mở
+    $('#defaultModal').on('show.bs.modal', function () {
+        document.getElementById("modal-alert").innerHTML = "";
+    });
 }
 
 // Gọi hàm attachEventHandlers khi DOM đã sẵn sàng
@@ -291,17 +332,18 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 
-{{-- script thêm mới --}}
+{{-- script thêm mới và chỉnh sửa --}}
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // Xử lý form thêm mới tài khoản
+    // Xử lý form thêm mới hoặc chỉnh sửa tài khoản
     document.getElementById("AddAccountForm").addEventListener("submit", function(event) {
         event.preventDefault(); // Ngăn chặn hành vi mặc định của form
 
         let formData = new FormData(this);
+        let method = this.method === "PUT" ? "PUT" : "POST";
 
         fetch(this.action, {
-            method: "POST",
+            method: method,
             headers: {
                 "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
             },
@@ -316,29 +358,48 @@ document.addEventListener("DOMContentLoaded", function() {
                 successAlert.textContent = data.success;
                 document.querySelector(".modal-body").prepend(successAlert);
 
-                // Thêm tài khoản mới vào bảng
-                let newRow = document.createElement("tr");
-                newRow.innerHTML = `
-                    <td><a href="#" class="btn btn-sm btn-primary btn-view" data-toggle="modal" data-target=".modal-view-lg" data-id="${data.account.id}">Xem</a></td>
-                    <td>${document.querySelectorAll("tbody tr").length + 1}</td>
-                    <td>${data.account.username}</td>
-                    <td>${data.account.account_name}</td>
-                    <td>${data.account.website_app}</td>
-                    <td>${data.account.phone_email_verify}</td>
-                    <td>
-                        <a href="#" class="btn btn-sm btn-primary">Sửa</a>
-                        <form action="" style="display:inline;">
-                            @csrf
-                            <button type="submit" class="btn btn-sm btn-danger btn-delete-account" data-id="${data.account.id}">Xóa</button>
-                        </form>
-                    </td>
-                `;
-                document.querySelector("tbody").appendChild(newRow);
+                // Cập nhật hoặc thêm tài khoản mới vào bảng
+                if (method === "PUT") {
+                    let row = document.querySelector(`button[data-id='${data.account.id}']`).closest("tr");
+                    row.innerHTML = `
+                        <td><a href="#" class="btn btn-sm btn-primary btn-view" data-toggle="modal" data-target=".modal-view-lg" data-id="${data.account.id}">Xem</a></td>
+                        <td>${row.rowIndex}</td>
+                        <td>${data.account.username}</td>
+                        <td>${data.account.account_name}</td>
+                        <td>${data.account.website_app}</td>
+                        <td>${data.account.phone_email_verify}</td>
+                        <td>
+                            <a href="#" class="btn btn-sm btn-primary btn-edit" data-toggle="modal" data-target=".bd-example-modal-lg" data-action="edit" data-id="${data.account.id}">Sửa</a>
+                            <form action="" style="display:inline;">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-danger btn-delete-account" data-id="${data.account.id}">Xóa</button>
+                            </form>
+                        </td>
+                    `;
+                } else {
+                    let newRow = document.createElement("tr");
+                    newRow.innerHTML = `
+                        <td><a href="#" class="btn btn-sm btn-primary btn-view" data-toggle="modal" data-target=".modal-view-lg" data-id="${data.account.id}">Xem</a></td>
+                        <td>${document.querySelectorAll("tbody tr").length + 1}</td>
+                        <td>${data.account.username}</td>
+                        <td>${data.account.account_name}</td>
+                        <td>${data.account.website_app}</td>
+                        <td>${data.account.phone_email_verify}</td>
+                        <td>
+                            <a href="#" class="btn btn-sm btn-primary btn-edit" data-toggle="modal" data-target=".bd-example-modal-lg" data-action="edit" data-id="${data.account.id}">Sửa</a>
+                            <form action="" style="display:inline;">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-danger btn-delete-account" data-id="${data.account.id}">Xóa</button>
+                            </form>
+                        </td>
+                    `;
+                    document.querySelector("tbody").appendChild(newRow);
+                }
 
                 // Gọi lại hàm attachEventHandlers để gán sự kiện cho các nút mới
                 attachEventHandlers();
 
-                // Đóng modal sau 2 giây
+                // Đóng modal sau 1 giây
                 setTimeout(() => {
                     $('#defaultModal').modal('hide');
                 }, 1000);

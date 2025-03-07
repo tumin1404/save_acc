@@ -119,9 +119,33 @@ class AccountController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-        //
+        try {
+            $request->validate([
+                'username' => 'required',
+                'password' => 'required|min:5',
+                'account_name' => 'required',
+                'website_app' => '',
+                'app_phone_authen' => '',
+                'phone_email_verify' => '',
+                '2FA' => '',
+            ]);
+
+            $account = Account::findOrFail($id);
+            $account->username = $request->input('username');
+            $account->password = $request->input('password');
+            $account->account_name = $request->input('account_name');
+            $account->website_app = $request->input('website_app');
+            $account->phone_email_verify = $request->input('phone_email_verify');
+            $account->app_phone_authen = $request->input('app_phone_authen');
+            $account->{'2FA'} = $request->input('2FA');
+            $account->save();
+
+            return response()->json(['success' => 'Tài khoản đã được cập nhật thành công!', 'account' => $account], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Lỗi: Có lỗi xảy ra khi cập nhật tài khoản.'], 500);
+        }
     }
 
     /**
